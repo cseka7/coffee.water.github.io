@@ -1,4 +1,4 @@
-# coffee.water.github.io
+# https://cseka7.github.io/coffeewatercalculator/
 
 # ☕ Coffee Water Calculator
 
@@ -36,7 +36,7 @@ It helps determine how much of each mineral solution you need to achieve ideal t
 
 You can use this tool online by hosting it with:
 
-- [GitHub Pages](https://cseka7.github.com/coffee.water.github.io)
+- [GitHub Pages](https://cseka7.github.io/coffeewatercalculator/)
 
 Or simply open the HTML file in your browser.
 
