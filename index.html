@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Coffee water calculator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f3f4f6;
+      padding: 2rem;
+      color: #111827;
+    }
+    h1, h2 {
+      color: #1f2937;
+      text-align: center;
+    }
+    .centered {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    input[type="number"] {
+      width: 4rem;
+    }
+    input[type="range"] {
+      width: 10rem;
+      margin-left: 1rem;
+    }
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0.25rem;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    .button-group {
+      text-align: center;
+    }
+    .results-box {
+      background: #e0f2fe;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      white-space: pre-line;
+    }
+    .results-box strong {
+      display: inline-block;
+      width: 240px;
+    }
+    .volume-input {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .volume-input label {
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+    .volume-input input {
+      width: 6rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="centered">
+    <div id="warningBox" style="background:#fff3cd; border:1px solid #ffeeba; padding:1rem; border-radius:0.5rem; margin-bottom:1.5rem; color:#856404; font-size:0.95rem; position:relative; display:none;">
+      <span style="position:absolute; top:0.25rem; right:0.5rem; cursor:pointer; font-weight:bold;" onclick="dismissWarning()">&times;</span>
+      ⚠️ Settings and saves are stored only within this browser on this device. They may be lost if you clear your browser data (e.g., cookies). You can safely save them using Export/Import.
+<!--A beállítások és mentések csak ezen a böngészőn, ezen az eszközön belül tárolódnak. Böngésző adatainak törlése (pl. cookie-k) esetén elveszhetnek. Exportálással/Importálással biztonságosan mentheted.-->
+    </div>
+
+    <h1>Coffee water calculator</h1>
+
+    <h2>Pre-mixed concentrations</h2>
+    <table>
+      <tr><th>Substance</th><th>Concentration [g/l]</th></tr>
+      <tr><td>MgSO₄·7H₂O</td><td><input id="mgso4" type="number" value="5" onchange="enforceMinimumValue(this)"></td></tr>
+      <tr><td>NaHCO₃</td><td><input id="nahco3" type="number" value="3" onchange="enforceMinimumValue(this)"></td></tr>
+      <tr><td>CaCl</td><td><input id="cacl" type="number" step=1 value="3" onchange="enforceMinimumValue(this)"></td></tr>
+      <tr><td>KHCO₃</td><td><input id="khco3" type="number" value="3" onchange="enforceMinimumValue(this)"></td></tr>
+    </table>
+
+    <h2>Target ppm values</h2>
+    <label for="preset">Recipes:</label>
+    <select id="preset" onchange="loadPreset()">
+      <option value="custom">Custom</option>
+    </select>
+    <input id="presetName" type="text" placeholder="Name of recipe...">
+    <button onclick="savePreset()">Save</button>
+    <button onclick="deletePreset()">Delete</button>
+
+    <table>
+      <tr>
+        <td>Magnesium (Mg²⁺) [mg/l or ppm]</td>
+        <td>
+          <input id="targetMg" type="number" value="8">
+          <input id="sliderMg" type="range" min="0" max="50" value="8">
+        </td>
+      </tr>
+      <tr>
+        <td>Calcium (Ca²⁺) [mg/l or ppm]</td>
+        <td>
+          <input id="targetCa" type="number" value="5">
+          <input id="sliderCa" type="range" min="0" max="50" value="5">
+        </td>
+      </tr>
+      <tr>
+        <td>Sodium (Na⁺) [mg/l or ppm]</td>
+        <td>
+          <input id="targetNa" type="number" value="7">
+          <input id="sliderNa" type="range" min="0" max="50" value="7">
+        </td>
+      </tr>
+      <tr>
+        <td>Potassium (K⁺) [mg/l or ppm]</td>
+        <td>
+          <input id="targetK" type="number" value="12">
+          <input id="sliderK" type="range" min="0" max="50" value="12">
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Bicarbonate (HCO₃⁻) [mg/l or ppm]</strong></td>
+        <td><span id="bicarbResult">0</span></td>
+      </tr>
+    </table>
+
+    <div class="button-group">
+      <button onclick="exportPresets()">Export</button>
+      <button onclick="document.getElementById('importFile').click()">Import</button>
+      <input id="importFile" type="file" style="display:none" onchange="importPresets(event)">
+    </div>
+
+
+    <h2>Results:</h2>
+    <div class="volume-input">
+      <label for="targetVolume">Target water volume (liters):</label>
+      <input type="number" id="targetVolume" value="1" min="0.1" step="0.1" onchange="calculate()">
+    </div>
+    <div id="output" class="results-box"></div>
+
+    <h2>Water Hardness and Alkalinity</h2>
+    <table>
+      <tr>
+        <th>Parameter</th>
+        <th>Value (ppm as CaCO₃)</th>
+      </tr>
+      <tr>
+        <td>Total hardness</td>
+        <td id="hardnessResult">0</td>
+      </tr>
+      <tr>
+        <td>Alkalinity</td>
+        <td id="alkalinityResult">0</td>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+
+    function dismissWarning() {
+      localStorage.setItem('warningDismissed', 'true');
+      document.getElementById('warningBox').style.display = 'none';
+    }
+
+    function enforceMinimumValue(input) {
+      if (parseFloat(input.value) < 0.01 || isNaN(input.value)) {
+        input.value = 0.01;
+	calculate(); 
+      }
+    }
+
+    const syncPairs = ["Mg", "Ca", "Na", "K"];
+
+    syncPairs.forEach(key => {
+      const target = document.getElementById("target" + key);
+      const slider = document.getElementById("slider" + key);
+
+      target.addEventListener("input", () => {
+        slider.value = target.value;
+        if (document.getElementById("preset").value !== 'custom') {
+          document.getElementById("preset").value = 'custom';
+          document.getElementById("presetName").value = 'custom';
+        }
+        calculate();
+      });
+
+      slider.addEventListener("input", () => {
+        target.value = slider.value;
+        if (document.getElementById("preset").value !== 'custom') {
+          document.getElementById("preset").value = 'custom';
+          document.getElementById("presetName").value = 'custom';
+        }
+        calculate();
+      });
+    });
+
+    function calculate() {
+      const mg = parseFloat(document.getElementById("mgso4").value);
+      const na = parseFloat(document.getElementById("nahco3").value);
+      const ca = parseFloat(document.getElementById("cacl").value);
+      const k  = parseFloat(document.getElementById("khco3").value);
+      const volume = parseFloat(document.getElementById("targetVolume").value);
+
+      const targetMg = parseFloat(document.getElementById("targetMg").value);
+      const targetCa = parseFloat(document.getElementById("targetCa").value);
+      const targetNa = parseFloat(document.getElementById("targetNa").value);
+      const targetK  = parseFloat(document.getElementById("targetK").value);
+
+      const mgMg = (mg / 246.47) * 24.31;
+      const naNa = (na / 84.01) * 22.99;
+      const caCa = (ca / 110.98) * 40.08;
+      const kK   = (k / 100.12) * 39.10;
+
+      const mlMg = (targetMg / mgMg) * volume;
+      const mlCa = (targetCa / caCa) * volume;
+      const mlNa = (targetNa / naNa) * volume;
+      const mlK  = (targetK / kK) * volume;
+
+      const hco3FromNaHCO3 = na*(targetNa / naNa) * (61.02 / 84.01);
+      const hco3FromKHCO3  = k*(targetK / kK)  * (61.02 / 100.12);
+      const totalHCO3 = hco3FromNaHCO3 + hco3FromKHCO3;
+
+      const totalHardnessCaCO3 = targetCa * 2.5 + targetMg * 4.1;
+      const alkalinityCaCO3 = totalHCO3 * 0.82;
+
+      document.getElementById("bicarbResult").innerText = `${totalHCO3.toFixed(2)}`;
+
+      document.getElementById("hardnessResult").innerText = totalHardnessCaCO3.toFixed(1);
+      document.getElementById("alkalinityResult").innerText = alkalinityCaCO3.toFixed(1);
+
+      document.getElementById("output").innerHTML =
+        `<strong>MgSO₄·7H₂O:</strong> ${mlMg.toFixed(2)} ml<br>` +
+        `<strong>CaCl:</strong> ${mlCa.toFixed(2)} ml<br>` +
+        `<strong>NaHCO₃:</strong> ${mlNa.toFixed(2)} ml<br>` +
+        `<strong>KHCO₃:</strong> ${mlK.toFixed(2)} ml<br>`
+    }
+
+    function loadPreset() {
+      const presetSelect = document.getElementById("preset");
+      const name = presetSelect.value;
+      if (name === "custom") return;
+      const preset = JSON.parse(localStorage.getItem("preset_" + name));
+      if (preset) {
+        setTargets(preset.mg, preset.ca, preset.na, preset.k);
+      }
+    }
+
+    function savePreset() {
+      const inputName = document.getElementById("presetName");
+      const name = inputName.value.trim();
+      if (!name) return alert("Please provide a name for the recipe!");
+
+      const mg = parseFloat(document.getElementById("targetMg").value);
+      const ca = parseFloat(document.getElementById("targetCa").value);
+      const na = parseFloat(document.getElementById("targetNa").value);
+      const k  = parseFloat(document.getElementById("targetK").value);
+
+      const preset = { mg, ca, na, k };
+      localStorage.setItem("preset_" + name, JSON.stringify(preset));
+
+      let presetSelect = document.getElementById("preset");
+      if (![...presetSelect.options].some(opt => opt.value === name)) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        presetSelect.appendChild(option);
+      }
+
+      presetSelect.value = name;
+      inputName.value = name;
+    }
+
+    function deletePreset() {
+      const select = document.getElementById("preset");
+      const name = select.value;
+      if (name === "custom") return;
+      if (confirm(`Do you want to delete the '${name}' recipe?`)) {
+        localStorage.removeItem("preset_" + name);
+        select.remove(select.selectedIndex);
+        select.value = "custom";
+        document.getElementById("presetName").value = "custom";
+        calculate();
+      }
+    }
+
+    function exportPresets() {
+      const data = {};
+      for (let key in localStorage) {
+        if (key.startsWith("preset_")) {
+          data[key] = localStorage.getItem(key);
+        }
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "presets.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importPresets(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = JSON.parse(e.target.result);
+        for (let key in data) {
+          localStorage.setItem(key, data[key]);
+        }
+        location.reload();
+      };
+      reader.readAsText(file);
+    }
+
+    function storeConcentrations() {
+      const concentrations = {
+        mgso4: document.getElementById("mgso4").value,
+        nahco3: document.getElementById("nahco3").value,
+        cacl: document.getElementById("cacl").value,
+        khco3: document.getElementById("khco3").value
+      };
+      localStorage.setItem("concentrations", JSON.stringify(concentrations));
+    }
+
+    function loadStoredConcentrations() {
+      const saved = localStorage.getItem("concentrations");
+      if (!saved) return;
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.mgso4) document.getElementById("mgso4").value = parsed.mgso4;
+        if (parsed.nahco3) document.getElementById("nahco3").value = parsed.nahco3;
+        if (parsed.cacl) document.getElementById("cacl").value = parsed.cacl;
+        if (parsed.khco3) document.getElementById("khco3").value = parsed.khco3;
+      } catch (e) {
+        console.error("Hibás koncentráció-adatok a localStorage-ben.", e);
+      }
+    }
+
+    function setTargets(mg, ca, na, k) {
+      document.getElementById("targetMg").value = mg;
+      document.getElementById("sliderMg").value = mg;
+      document.getElementById("targetCa").value = ca;
+      document.getElementById("sliderCa").value = ca;
+      document.getElementById("targetNa").value = na;
+      document.getElementById("sliderNa").value = na;
+      document.getElementById("targetK").value = k;
+      document.getElementById("sliderK").value = k;
+      document.getElementById("presetName").value = document.getElementById("preset").value;
+      calculate();
+    }
+
+    function loadSavedPresets() {
+      const presetSelect = document.getElementById("preset");
+
+      const defaultPresets = {
+        "Balanced Brew":   { mg: 10, ca: 20, na: 10, k: 5 },
+        "Light Roast":     { mg: 15, ca: 10, na: 5,  k: 15 },
+        "Classic Profile": { mg: 8,  ca: 25, na: 7,  k: 10 }
+      };
+
+      for (const [name, data] of Object.entries(defaultPresets)) {
+        const key = "preset_" + name;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, JSON.stringify(data));
+        }
+      }
+
+      for (let key in localStorage) {
+        if (key.startsWith("preset_")) {
+          const name = key.replace("preset_", "");
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          presetSelect?.appendChild(option);
+        }
+      }
+    }
+
+    window.onload = () => {
+      if (!localStorage.getItem('warningDismissed')) {
+        document.getElementById('warningBox').style.display = 'block';
+      }
+      ["mgso4", "nahco3", "cacl", "khco3"].forEach(id => {
+        document.getElementById(id).addEventListener("input", calculate);
+	document.getElementById(id).addEventListener("input", storeConcentrations);
+      });
+      loadStoredConcentrations();
+      loadSavedPresets();
+      calculate();
+    };
+</script>
+</body>
+</html>
