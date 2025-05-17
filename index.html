@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
   <meta charset="UTF-8">
   <title>Coffee water calculator</title>
   <style>
@@ -182,8 +184,12 @@
       localStorage.setItem('warningDismissed', 'true');
       document.getElementById('warningBox').style.display = 'none';
     }
-
-    function enforceMinimumValue(input) {
+	
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('service-worker.js');
+	}
+    
+	function enforceMinimumValue(input) {
       if (parseFloat(input.value) < 0.01 || isNaN(input.value)) {
         input.value = 0.01;
 	calculate(); 
